@@ -29,6 +29,7 @@ import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -242,9 +243,13 @@ public class DataManagerServiceImpl implements DataManagerService
 		{
 			final String featuresPath = dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/");
 			
+			LoggerFactory.getLogger(getClass()).info(featuresPath);
+			
 			JSONObject jdDirSchema = new JSONObject();
 			
 			getDirSchema(featuresPath, jdDirSchema);
+			
+			LoggerFactory.getLogger(getClass()).info(">> "+jdDirSchema.toString(2));
 			
 			return jdDirSchema;
 		} 
@@ -321,12 +326,15 @@ public class DataManagerServiceImpl implements DataManagerService
 			if (file.getPath().endsWith(".feature"))
 			{
 				String [] localePathTokens = file.getPath().replace(repoBaseDir, "").split(Pattern.quote("/"));
-				
 				switch (localePathTokens.length) 
 				{
 					case 2:
 						if (dirSchema.has(localePathTokens[0]))
 						{
+							if (!dirSchema.getJSONObject(localePathTokens[0]).has("files")) 
+							{
+								dirSchema.getJSONObject(localePathTokens[0]).put("files", new JSONArray());
+							}
 							dirSchema.getJSONObject(localePathTokens[0]).getJSONArray("files").put(localePathTokens[1]);
 						}
 						else
@@ -429,7 +437,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			// read header line
 			if ((row = bReader.readLine()) != null)
 			{
-				rowDataTokens = row.split(Pattern.quote(","));
+				rowDataTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				headerRow = new JSONObject[features.length];
 				for (int headerRowColumnIndex = 0; headerRowColumnIndex < features.length; headerRowColumnIndex++) 
@@ -462,7 +470,8 @@ public class DataManagerServiceImpl implements DataManagerService
 				{
 					if (headerRow[headerRowColumnIndex] != null && rowDataTokens[headerRow[headerRowColumnIndex].getInt("index")] != null)
 					{
-						jsObject.put(headerRow[headerRowColumnIndex].getString("name"), rowDataTokens[headerRow[headerRowColumnIndex].getInt("index")]);
+						jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
+								rowDataTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
 					}
 				}
 				jsArray.put(jsObject);
@@ -519,7 +528,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			// read header line
 			if ((row = bReader.readLine()) != null)
 			{
-				rowTokens = row.split(Pattern.quote(","));
+				rowTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				headerRow = new JSONObject[features.length];
 				for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
@@ -527,11 +536,13 @@ public class DataManagerServiceImpl implements DataManagerService
 					headerRow[headerRowColumnIndex] = null;
 					for (int rowTokenColumnIndex = 0; rowTokenColumnIndex < rowTokens.length; rowTokenColumnIndex++) 
 					{
-						if (rowTokens[rowTokenColumnIndex].equalsIgnoreCase(features[headerRowColumnIndex]))
+						if (rowTokens[rowTokenColumnIndex].trim().toLowerCase().equalsIgnoreCase(features[headerRowColumnIndex].trim().toLowerCase()))
 						{
 							headerRow[headerRowColumnIndex] = new JSONObject();
 							headerRow[headerRowColumnIndex].put("index", rowTokenColumnIndex);
 							headerRow[headerRowColumnIndex].put("name", rowTokens[rowTokenColumnIndex]);
+							
+							break;
 						}
 					}
 				}
@@ -546,7 +557,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			
 			while ((row = bReader.readLine()) != null) 
 			{
-				rowTokens = row.split(Pattern.quote(","));
+				rowTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				String [] tmp = begin.split(Pattern.quote("-"));
 				Long beginDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
@@ -561,7 +572,8 @@ public class DataManagerServiceImpl implements DataManagerService
 					JSONObject jsObject = new JSONObject();
 					for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
 					{
-						jsObject.put(headerRow[headerRowColumnIndex].getString("name"), rowTokens[headerRow[headerRowColumnIndex].getInt("index")]);
+						jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
+								rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
 					}
 					jsArray.put(jsObject);
 				}
@@ -617,7 +629,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			// read header line
 			if ((row = bReader.readLine()) != null)
 			{
-				rowTokens = row.split(Pattern.quote(","));
+				rowTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				buffer.append("datetime,");
 				
@@ -647,11 +659,11 @@ public class DataManagerServiceImpl implements DataManagerService
 			
 			while ((row = bReader.readLine()) != null) 
 			{
-				buffer.append(rowTokens[1]).append(",");
+				buffer.append(rowTokens[1].trim()).append(",");
 					
 				for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
 				{
-					buffer.append(rowTokens[headerRow[headerRowColumnIndex].getInt("index")]).append(",");
+					buffer.append(rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim()).append(",");
 				}
 				
 				buffer.delete(buffer.length()-1, buffer.length()).append("\n");
@@ -709,7 +721,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			
 			if ((row = bReader.readLine()) != null)
 			{
-				rowTokens = row.split(Pattern.quote(","));
+				rowTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				headerRow = new JSONObject[features.length];
 				for (int headerRowColumIndex = 0; headerRowColumIndex < headerRow.length; headerRowColumIndex++) 
@@ -738,7 +750,7 @@ public class DataManagerServiceImpl implements DataManagerService
 			
 			while ((row = bReader.readLine()) != null) 
 			{
-				rowTokens = row.split(Pattern.quote(","));
+				rowTokens = row.concat(" ").split(Pattern.quote(","));
 				
 				String [] tmp = begin.split(Pattern.quote("-"));
 				Long beginDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
@@ -860,20 +872,19 @@ public class DataManagerServiceImpl implements DataManagerService
 		try
 		{
 			int [] columns = new int [info.getJSONArray("columns").length()];
-
 			for (int i = 0; i < info.getJSONArray("columns").length(); i++)
 			{
 				columns[i] = info.getJSONArray("columns").getInt(i);
 			}
 
-			final String pathToRepo = dataFileBaseDir.concat("/").concat(repo).concat(".repo");
-
 			final StringBuffer buffer = new StringBuffer();
 
+			final String pathToRepo = dataFileBaseDir.concat("/").concat(repo).concat(".repo");
 			try (Stream<String> lines = Files.lines(Paths.get(pathToRepo)))
 			{
-				final String [] token = lines.skip(1).findFirst().get().split(Pattern.quote(info.getString("separator")));
-
+				final String header = lines.skip(1).findFirst().get();
+				final String [] token = header.concat(" ").split(Pattern.quote(info.getString("separator")));
+				
 				for (int index = 0; index < columns.length; index++)
 				{
 					if (index > 0)
@@ -900,7 +911,6 @@ public class DataManagerServiceImpl implements DataManagerService
 				if (info.getString("connective").equals("or"))
 				{
 					flag = false;
-
 					for (int i = 0; i < info.getJSONArray("cValueIndex").length(); i++)
 					{
 						if (token[info.getJSONArray("cValueIndex").getInt(i)].equalsIgnoreCase(info.getJSONArray("cValue").getString(i)))
@@ -997,10 +1007,5 @@ public class DataManagerServiceImpl implements DataManagerService
 				}
 			}
 		}
-	}
-	
-	public static void main(String ... args) throws Exception
-	{
-		new DataManagerServiceImpl().slice("p971074907", new JSONObject());
 	}
 }

@@ -170,6 +170,8 @@ public class DataManagerController
 		} 
 		catch (Exception e) 
 		{
+			e.printStackTrace();
+			
 			if (e.getMessage() == null) 
 			{
 				httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
