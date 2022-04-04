@@ -1,52 +1,39 @@
+## Introduction
 
-## Sobre o Projeto
+_np-datamanager_ is one of the modules that integrate the work of the Ncovid team, whose objective is to create and maintain an interface for visualizing data and forecasts related to the COVID-19 pandemic, as well as managing models capable of making the predictions .
 
-O propósito principal do sistema é fornecer um ambiente (site) para auxiliar gestores e autoridades a melhor alocar recursos no combate às epidemias virais. De início, o sistema será usado para a pandemia do covid. Para isto, o sistema fornece predições das curvas da pandemia (principalmente a de mortes) e também permite a geração de resultados esperados de certas ações. 
+## Requirements
 
-Por exemplo, caso aumente o investimento em máscaras, quais são os efeitos esperados na curva? (com embasamento científico). Quais os efeitos de lockdown (se fizermos lockdown por tal período qual é o efeito esperado na curva?). Informações deste tipo devem ser disponibilizadas pelo site. O site deve ser amigável o suficiente para facilitar o uso por pessoas leigas.
+This module uses the following frameworks to support its development:
 
-A princípio o site fará estes processos para um estado brasileiro. Na sua forma final, o sistema deve ser capaz de coletar, agregar e tratar dados, treinar modelos e realizar predições e sugestões de ações para qualquer região do mundo.
-
-### Tecnologias Empregadas
-
-Esta seção lista todos os principais frameworks/bibliotecas usados para inicializar esse projeto. 
-
-* [Java](https://www.java.com/pt-BR/)
+* [Java](https://www.java.com/pt-BR/) (vesão 11 ou superior)
 * [Maven](https://maven.apache.org/)
-* [Python](https://www.python.org/)
-* [Spring Boot](https://spring.io/projects/spring-boot)
-* [Swagger](https://swagger.io/)
-* [Vue](https://vuejs.org/)
+* [Spring Boot](https://spring.io/projects/spring-boot) (versão 2.2.1)
+* [Swagger](https://swagger.io/) (springfox 2.9.2)
 
+## Compilation
 
+In order to compile the codes, go to the module folder and type:
 
-## Visão Geral
+```
+$ mvn clean install
+```
 
-Arquiteturalmente falando, o projeto está apresentado na série de diagramas UML que estão apresentados na sequência. Após cada um dos diagramas postos aqui haverá uma breve discussão a respeito de cada um desses tais.
+## Module Bootstrap
 
-### Diagrama de Casos de Uso
+In order to bootstrap, go to the module folder and type:
+```
+$ java -jar target/np.datamanager-[version].jar
+```
 
-### Diagrama de Atividade
+## Usage
 
-### Diagrama de Componentes
+You can get documentation about this module in [ncovid.natalnet.br/datamanager](http://ncovid.natalnet.br/datamanager/swagger-ui.html).
 
+## Disclosure notice
 
-## Módulos
+The software provided by this repository is currently a subject of research and is not to be used as an official source of information about COVID-19. 
 
-O projeto é construído a partir da implementação de um conjunto de micro serviços e uma biblioteca. A seguir, a lista dos artefatos:
+## License
 
-* [np-locales]()
-* [np-datamanager]()
-* [site]()
-
-
-## Papéis de Usuário
-
-Nesse instante, há um único papel concebido para uso da plataforma. Este papel define todo e qualquer usuário que acesso o site e deseje informações a respeito de predições de curvas da pandemia (principalmente a de mortes), além de informações relativas à geração de resultados esperados de certas ações.
-
-
-## Contato
-
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+The Ncovid Hub is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
