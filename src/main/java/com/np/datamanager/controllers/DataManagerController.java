@@ -1,5 +1,7 @@
 package com.np.datamanager.controllers;
 
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.np.commons.model.Timeseries;
+import com.np.commons.stats.StatisticsUtil;
 import com.np.datamanager.Monitoring;
 import com.np.datamanager.service.DataManagerService;
 
@@ -450,4 +454,49 @@ public class DataManagerController
 			return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
 		}
 	}
+    @ApiOperation(value = "Get mean.")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
+            @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
+            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names.", paramType = "String", required = true, example = "'cases'"),
+            @ApiImplicitParam(name = "begin", paramType = "String", required = true, example = "2020-06-02"),
+            @ApiImplicitParam(name = "end", paramType = "String", required = true, example = "2020-06-09"),
+            @ApiImplicitParam(name = "period", paramType = "the Integer value representing the period for calculating the moving average", required = true, example = "7")
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
+            @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
+            @ApiResponse(code = 500, message = "Internal Server Error")
+    })
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{feature}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getMovingAverageAsJSON(@PathVariable(required = true) String urlRepoKey,
+            @PathVariable(required = true) String path, @PathVariable(required = true) String feature, 
+            @PathVariable(required = true) String begin, @PathVariable(required = true) String end,
+            @PathVariable(required = true) Integer period)
+    {
+        try
+        {
+            final Timeseries timeseries = dataManagerService.getDataAsTree(urlRepoKey, path, feature, begin, end);
+            
+            StatisticsUtil statisticsUtil = new StatisticsUtil(period);
+            
+            final Map<String, List<Double>> map = statisticsUtil.movingAverage(timeseries, period);
+            
+            final JSONObject jsObject = new JSONObject();
+            map.keySet().forEach(key -> {
+                final JSONArray jsArray = new JSONArray();
+                map.get(key).forEach(elemn -> {
+                    jsArray.put(elemn);
+                });
+                jsObject.put(key, jsArray);
+            });
+            
+            return ResponseEntity.status(HttpStatus.OK).body(jsObject.toString());
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
 }

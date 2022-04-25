@@ -36,6 +36,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.np.commons.model.Timeseries;
 import com.np.commons.utils.Utils;
 
 @Service
@@ -1008,4 +1009,107 @@ public class DataManagerServiceImpl implements DataManagerService
 			}
 		}
 	}
+    
+    /**
+     * get a body data file as JSON Object for a period.
+     * 
+     * @param urlRepoKey: a http address
+     * @param path: a locale path
+     * @param features: a list of String, each item in the list is the name of a feature
+     * @param begin: the start date of the series
+     * @param end: the end date of the series
+     * 
+     */
+    @SuppressWarnings("deprecation")
+    @Override
+    public Timeseries getDataAsTree(String urlRepoKey, String path, String feature, String begin, String end) throws Exception 
+    {
+        FileReader fReader = null;
+        BufferedReader bReader = null;
+        
+        try 
+        {
+            fReader = new FileReader(new File(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path).concat("/all.feature")));
+            bReader = new BufferedReader(fReader);
+            
+            JSONObject [] headerRow = null;
+            String [] rowTokens = null;
+            String row = null;
+            
+            // read header line
+            if ((row = bReader.readLine()) != null)
+            {
+                rowTokens = row.concat(" ").split(Pattern.quote(","));
+                
+                headerRow = new JSONObject[1];
+                for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
+                {
+                    headerRow[headerRowColumnIndex] = null;
+                    for (int rowTokenColumnIndex = 0; rowTokenColumnIndex < rowTokens.length; rowTokenColumnIndex++) 
+                    {
+                        if (rowTokens[rowTokenColumnIndex].trim().toLowerCase().equalsIgnoreCase(feature.trim().toLowerCase()))
+                        {
+                            headerRow[headerRowColumnIndex] = new JSONObject();
+                            headerRow[headerRowColumnIndex].put("index", rowTokenColumnIndex);
+                            headerRow[headerRowColumnIndex].put("name", rowTokens[rowTokenColumnIndex]);
+                            
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                throw new Exception("error: data file do not begin with headers");
+            }
+            
+            // read header meaning description line
+            bReader.readLine();
+            
+            Timeseries timeseries = new Timeseries();
+            
+            while ((row = bReader.readLine()) != null) 
+            {
+                rowTokens = row.concat(" ").split(Pattern.quote(","));
+                
+                String [] tmp = begin.split(Pattern.quote("-"));
+                Long beginDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
+                
+                tmp = end.split(Pattern.quote("-"));
+                Long endDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
+                
+                tmp = rowTokens[1].split(Pattern.quote("-"));
+                Long date = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
+                if (date >= beginDate && date <= endDate)
+                {
+                    JSONObject jsObject = new JSONObject();
+                    for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
+                    {
+                        jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
+                                rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
+                    }
+
+                    timeseries.new Entry(date, jsObject);
+                }
+            }
+            
+            return timeseries;
+        } 
+        catch (MalformedURLException e) 
+        {
+            throw new Exception("error: internal system error [".concat(e.getMessage()).concat("]"));
+        }
+        finally 
+        {
+            if (bReader != null) 
+            {
+                bReader.close();
+            }
+            
+            if (fReader != null) 
+            {
+                fReader.close();
+            }
+        }
+    }
 }

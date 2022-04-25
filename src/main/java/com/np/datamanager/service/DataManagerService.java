@@ -1,9 +1,13 @@
 package com.np.datamanager.service;
 
+import java.util.TreeSet;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.np.commons.model.Timeseries;
 
 public interface DataManagerService 
 {
@@ -32,4 +36,6 @@ public interface DataManagerService
 	public void removeData(String urlRepoKey, String path, String feature) throws Exception;
 	
 	public void slice(String repo, JSONObject info) throws Exception;
+	
+	public Timeseries getDataAsTree(String urlRepoKey, String path, String feature, String begin, String end) throws Exception;
 }
