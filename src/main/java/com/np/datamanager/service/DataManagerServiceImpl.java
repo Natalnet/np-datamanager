@@ -18,7 +18,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1022,7 +1024,7 @@ public class DataManagerServiceImpl implements DataManagerService
      */
     @SuppressWarnings("deprecation")
     @Override
-    public Timeseries getDataAsTree(String urlRepoKey, String path, String feature, String begin, String end) throws Exception 
+    public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String [] features) throws Exception 
     {
         FileReader fReader = null;
         BufferedReader bReader = null;
@@ -1035,27 +1037,18 @@ public class DataManagerServiceImpl implements DataManagerService
             JSONObject [] headerRow = null;
             String [] rowTokens = null;
             String row = null;
+            String [] fields = features;
             
             // read header line
             if ((row = bReader.readLine()) != null)
             {
-                rowTokens = row.concat(" ").split(Pattern.quote(","));
-                
-                headerRow = new JSONObject[1];
-                for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
+                fields = rowTokens = row.concat(" ").split(Pattern.quote(","));
+                headerRow = new JSONObject[rowTokens.length];
+                for (int headerTokenIndex = 0; headerTokenIndex < headerRow.length; headerTokenIndex++) 
                 {
-                    headerRow[headerRowColumnIndex] = null;
-                    for (int rowTokenColumnIndex = 0; rowTokenColumnIndex < rowTokens.length; rowTokenColumnIndex++) 
-                    {
-                        if (rowTokens[rowTokenColumnIndex].trim().toLowerCase().equalsIgnoreCase(feature.trim().toLowerCase()))
-                        {
-                            headerRow[headerRowColumnIndex] = new JSONObject();
-                            headerRow[headerRowColumnIndex].put("index", rowTokenColumnIndex);
-                            headerRow[headerRowColumnIndex].put("name", rowTokens[rowTokenColumnIndex]);
-                            
-                            break;
-                        }
-                    }
+                    headerRow[headerTokenIndex] = new JSONObject();
+                    headerRow[headerTokenIndex].put("index", headerTokenIndex);
+                    headerRow[headerTokenIndex].put("name", rowTokens[headerTokenIndex]);
                 }
             }
             else
@@ -1066,32 +1059,48 @@ public class DataManagerServiceImpl implements DataManagerService
             // read header meaning description line
             bReader.readLine();
             
-            Timeseries timeseries = new Timeseries();
-            
+            final List<JSONObject> list = new ArrayList<JSONObject>();
             while ((row = bReader.readLine()) != null) 
             {
                 rowTokens = row.concat(" ").split(Pattern.quote(","));
                 
-                String [] tmp = begin.split(Pattern.quote("-"));
-                Long beginDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
-                
-                tmp = end.split(Pattern.quote("-"));
-                Long endDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
-                
-                tmp = rowTokens[1].split(Pattern.quote("-"));
-                Long date = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
-                if (date >= beginDate && date <= endDate)
+                final JSONObject jsObject = new JSONObject();
+                final String [] tmp = rowTokens[1].split(Pattern.quote("-"));
+                jsObject.put("timestamp", 
+                        new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime());
+                for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
                 {
-                    JSONObject jsObject = new JSONObject();
-                    for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
-                    {
-                        jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
-                                rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
-                    }
-
-                    timeseries.new Entry(date, jsObject);
+                    jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
+                            rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
                 }
+                
+                list.add(jsObject);
             }
+            
+            final Timeseries timeseries = new Timeseries(fields, list.size());
+            list.stream().parallel().forEach(item ->
+            {
+                try
+                {
+                    item.keySet().stream().forEach(key -> {
+                        try
+                        {
+                            if (!key.equals("timestamp")) 
+                            {
+                                timeseries.emplace(key, item.get(key), item.getLong("timestamp"));
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException(e);
+                }
+            });
             
             return timeseries;
         } 
@@ -1111,5 +1120,142 @@ public class DataManagerServiceImpl implements DataManagerService
                 fReader.close();
             }
         }
+    }
+    
+    @Override
+    public void saveMovingAverage(String fileFullName, Timeseries timeseries) throws Exception 
+    {
+        try
+        {
+            final PrintWriter printWriter = new PrintWriter(new File(fileFullName));
+            printWriter.write(printMovingAverage(timeseries));
+            printWriter.close();
+        }
+        catch (IOException e)
+        {
+            throw new Exception("error: error trying to save moving average [".concat(e.getMessage()).concat("]"));
+        }
+    }
+
+    @Override
+    public Timeseries getMovingAverage(String fileFullName) throws Exception 
+    {
+        FileReader fReader = null;
+        BufferedReader bReader = null;
+        
+        try 
+        {
+            fReader = new FileReader(new File(fileFullName));
+            bReader = new BufferedReader(fReader);
+
+            JSONObject [] headerTokens = null;
+            String [] tokens = null;
+            String row = null;
+            String [] fields = null;
+            
+            // read header line
+            if ((row = bReader.readLine()) != null)
+            {
+                fields = tokens = row.concat(" ").split(Pattern.quote(","));
+                headerTokens = new JSONObject[tokens.length];
+                for (int headerTokenIndex = 0; headerTokenIndex < headerTokens.length; headerTokenIndex++) 
+                {
+                    headerTokens[headerTokenIndex] = new JSONObject();
+                    headerTokens[headerTokenIndex].put("index", headerTokenIndex);
+                    headerTokens[headerTokenIndex].put("name", tokens[headerTokenIndex]);
+                }
+            }
+            else
+            {
+                throw new Exception("error: data file do not begin with headers");
+            }
+            
+            // read header meaning description line
+            
+            final List<JSONObject> list = new ArrayList<JSONObject>();
+            while ((row = bReader.readLine()) != null) 
+            {
+                tokens = row.concat(" ").split(Pattern.quote(","));
+                
+                final JSONObject jsObject = new JSONObject();
+                for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerTokens.length; headerRowColumnIndex++) 
+                {
+                    jsObject.put(headerTokens[headerRowColumnIndex].getString("name").trim(), 
+                            tokens[headerTokens[headerRowColumnIndex].getInt("index")].trim());
+                }
+                
+                list.add(jsObject);
+            }
+            
+            final Timeseries timeseries = new Timeseries(fields, list.size());
+            list.stream().parallel().forEach(item ->
+            {
+                try
+                {
+                    item.keySet().stream().forEach(key -> {
+                        try
+                        {
+                            if (!key.equals("timestamp")) 
+                            {
+                                timeseries.emplace(key, item.get(key), item.getLong("timestamp"));
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException(e);
+                }
+            });
+            
+            return timeseries;
+        } 
+        catch (MalformedURLException e) 
+        {
+            throw new Exception("error: internal system error [".concat(e.getMessage()).concat("]"));
+        }
+        finally 
+        {
+            if (bReader != null) 
+            {
+                bReader.close();
+            }
+            
+            if (fReader != null) 
+            {
+                fReader.close();
+            }
+        }
+    }
+    
+    private String printMovingAverage(Timeseries timeseries) 
+    {
+        StringBuffer buffer = new StringBuffer("timestamp;");
+        
+        for (int fieldIndex = 0; fieldIndex < timeseries.fields.length; fieldIndex++) 
+        {
+            buffer.append(timeseries.fields[fieldIndex]).append(";");
+        }
+        buffer.append("\n");
+        
+        int valueIndex = 0;
+        while (valueIndex < timeseries.timestamps.length)
+        {
+            buffer.append(timeseries.timestamps[valueIndex]).append(";");
+            
+            for (int fieldIndex = 0; fieldIndex < timeseries.fields.length; fieldIndex++) 
+            {
+                buffer.append(timeseries.values[fieldIndex][valueIndex]).append(";");
+            }
+            buffer.append("\n");
+            
+            valueIndex++;
+        }
+        
+        return buffer.toString();
     }
 }

@@ -1,7 +1,8 @@
 package com.np.datamanager.controllers;
 
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
@@ -468,30 +469,29 @@ public class DataManagerController
             @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
             @ApiResponse(code = 500, message = "Internal Server Error")
     })
-    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{feature}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getMovingAverageAsJSON(@PathVariable(required = true) String urlRepoKey,
-            @PathVariable(required = true) String path, @PathVariable(required = true) String feature, 
-            @PathVariable(required = true) String begin, @PathVariable(required = true) String end,
+            @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
             @PathVariable(required = true) Integer period)
     {
         try
         {
-            final Timeseries timeseries = dataManagerService.getDataAsTree(urlRepoKey, path, feature, begin, end);
+            final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
+                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat("all.feature");
             
-            StatisticsUtil statisticsUtil = new StatisticsUtil(period);
+            final Timeseries timeseries;
+            if (new File(fileFullName).exists()) 
+            {
+                timeseries = dataManagerService.getMovingAverage(fileFullName);
+            }
+            else
+            {
+                timeseries = new StatisticsUtil(period)
+                        .getMovingAverage(dataManagerService.getDataAsTimeseries(urlRepoKey, path, features.split(Pattern.quote(":"))), period);
+                dataManagerService.saveMovingAverage(fileFullName, timeseries);
+            }
             
-            final Map<String, List<Double>> map = statisticsUtil.movingAverage(timeseries, period);
-            
-            final JSONObject jsObject = new JSONObject();
-            map.keySet().forEach(key -> {
-                final JSONArray jsArray = new JSONArray();
-                map.get(key).forEach(elemn -> {
-                    jsArray.put(elemn);
-                });
-                jsObject.put(key, jsArray);
-            });
-            
-            return ResponseEntity.status(HttpStatus.OK).body(jsObject.toString());
+            return ResponseEntity.status(HttpStatus.OK).body("");
         }
         catch (Exception e)
         {

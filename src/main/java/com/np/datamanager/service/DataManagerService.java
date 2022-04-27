@@ -1,7 +1,5 @@
 package com.np.datamanager.service;
 
-import java.util.TreeSet;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.core.io.Resource;
@@ -25,11 +23,11 @@ public interface DataManagerService
 	
 	public JSONArray getDataAsJSON(String urlRepoKey, String path, String [] features) throws Exception;
 	
-	public JSONArray getDataAsJSON(String urlRepoKey, String path, String [] features, String begn, String end) throws Exception;
+	public JSONArray getDataAsJSON(String urlRepoKey, String path, String [] features, String begin, String end) throws Exception;
 	
 	public String getDataAsCSV(String urlRepoKeyKey, String path, String [] features) throws Exception;
 	
-	public String getDataAsCSV(String urlRepoKey, String path, String [] features, String begn, String end) throws Exception;
+	public String getDataAsCSV(String urlRepoKey, String path, String [] features, String begin, String end) throws Exception;
 
 	public String getDataFeatures(String urlRepoKey, String path) throws Exception;
 
@@ -37,5 +35,9 @@ public interface DataManagerService
 	
 	public void slice(String repo, JSONObject info) throws Exception;
 	
-	public Timeseries getDataAsTree(String urlRepoKey, String path, String feature, String begin, String end) throws Exception;
+	public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String [] features) throws Exception;
+	
+	public void saveMovingAverage(String fileFullName, Timeseries timeseries) throws Exception;
+    
+    public Timeseries getMovingAverage(String fileFullName) throws Exception;
 }
