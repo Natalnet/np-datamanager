@@ -1,7 +1,6 @@
 package com.np.datamanager.controllers;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
@@ -455,7 +454,8 @@ public class DataManagerController
 			return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
 		}
 	}
-    @ApiOperation(value = "Get mean.")
+	
+    @ApiOperation(value = "Get moving average for a timeseries")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
             @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
@@ -477,21 +477,104 @@ public class DataManagerController
         try
         {
             final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
-                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat("all.feature");
+                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
             
+            Timeseries _timeseries;
             final Timeseries timeseries;
             if (new File(fileFullName).exists()) 
             {
-                timeseries = dataManagerService.getMovingAverage(fileFullName);
+                String [] f = features.split(Pattern.quote(":"));
+                
+                _timeseries = timeseries = dataManagerService.getMovingAverage(fileFullName, f);
             }
             else
             {
-                timeseries = new StatisticsUtil(period)
-                        .getMovingAverage(dataManagerService.getDataAsTimeseries(urlRepoKey, path, features.split(Pattern.quote(":"))), period);
+                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases".split(Pattern.quote(":")));
+                
+                timeseries = new StatisticsUtil(period).getMovingAverage(_timeseries, period);
                 dataManagerService.saveMovingAverage(fileFullName, timeseries);
             }
             
-            return ResponseEntity.status(HttpStatus.OK).body("");
+            JSONObject jsonObject = new JSONObject();
+            for (int i = 0; i < timeseries.values.length; i++)
+            {
+                JSONArray jsonArrayAVG = new JSONArray();
+                for (int j = 0; j < timeseries.values[i].length; j++)
+                {
+                    jsonArrayAVG.put(timeseries.values[i][j]);
+                }
+                jsonObject.put(timeseries.fields[i].concat("_mavg"), jsonArrayAVG);
+            }
+            
+            return ResponseEntity.status(HttpStatus.OK).body(jsonObject.toString());
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
+    
+    @ApiOperation(value = "Update moving average")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
+            @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
+            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names.", paramType = "String", required = true, example = "'cases'"),
+            @ApiImplicitParam(name = "begin", paramType = "String", required = true, example = "2020-06-02"),
+            @ApiImplicitParam(name = "end", paramType = "String", required = true, example = "2020-06-09"),
+            @ApiImplicitParam(name = "period", paramType = "the Integer value representing the period for calculating the moving average", required = true, example = "7")
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
+            @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
+            @ApiResponse(code = 500, message = "Internal Server Error")
+    })
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/period/{period}/as-json/force-save", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> updateMovingAverageFor(@PathVariable(required = true) String urlRepoKey,
+            @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
+            @PathVariable(required = true) Integer period)
+    {
+        try
+        {
+            final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
+                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
+            
+            dataManagerService.saveMovingAverage(fileFullName, 
+                    new StatisticsUtil(period).getMovingAverage(
+                            dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases".split(Pattern.quote(":"))), period));
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getMovingAverageAsJSONFilteringByDate(@PathVariable(required = true) String urlRepoKey,
+            @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
+            @PathVariable(required = true) String begin, @PathVariable(required = true) String end,
+            @PathVariable(required = true) Integer period)
+    {
+        try
+        {
+            final Timeseries timeseries = new StatisticsUtil(period).getMovingAverage(
+                    dataManagerService.getDataAsTimeseries(urlRepoKey, path, features.split(Pattern.quote(":"))), period);
+            
+            JSONObject jsonObject = new JSONObject();
+            for (int i = 0; i < timeseries.values.length; i++)
+            {
+                JSONArray jsonArrayAVG = new JSONArray();
+                for (int j = 0; j < timeseries.values[i].length; j++)
+                {
+                    jsonArrayAVG.put(timeseries.values[i][j]);
+                }
+                jsonObject.put(timeseries.fields[i].concat("_mavg"), jsonArrayAVG);
+            }
+            
+            return ResponseEntity.status(HttpStatus.OK).body(jsonObject.toString());
         }
         catch (Exception e)
         {
