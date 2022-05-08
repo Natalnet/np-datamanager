@@ -1334,16 +1334,6 @@ public class DataManagerServiceImpl implements DataManagerService
             {
                 throw new Exception("error: data file do not begin with headers");
             }
-
-            for (int i =0; i < features.length; i++)
-            {
-                System.out.println(features[i].toString());
-            }
-            
-            for (int i =0; i < headerRow.length; i++)
-            {
-                System.out.println(headerRow[i].toString());
-            }
             
             // read header meaning description line
             

@@ -478,18 +478,13 @@ public class DataManagerController
     {
         try
         {
-            System.out.println("0 features: "+features);
-            
             String [] auxiliar = features.split(Pattern.quote(":"));
             features = "";
             for (int i = 1; i < auxiliar.length; i++)
             {
                 features = features + auxiliar[i].concat(":");
             }
-            System.out.println("1 features: "+features);
             features = features.substring(0, features.length() - 1);
-            System.out.println("2 features: "+features);
-            
             
             final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
                     .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
