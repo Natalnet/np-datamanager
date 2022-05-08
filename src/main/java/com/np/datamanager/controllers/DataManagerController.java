@@ -364,7 +364,7 @@ public class DataManagerController
 		}
 	}
 	
-	@ApiOperation(value = ".")
+	@ApiOperation(value = "Slice the external repository data file")
 	@ApiImplicitParams({
 		@ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
 	})
@@ -461,22 +461,20 @@ public class DataManagerController
 	
     @ApiOperation(value = "Get moving average for a timeseries")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
-            @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
-            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names.", paramType = "String", required = true, example = "'cases'"),
-            @ApiImplicitParam(name = "begin", paramType = "String", required = true, example = "2020-06-02"),
-            @ApiImplicitParam(name = "end", paramType = "String", required = true, example = "2020-06-09"),
-            @ApiImplicitParam(name = "period", paramType = "the Integer value representing the period for calculating the moving average", required = true, example = "7")
+        @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
+        @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
+        @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
+        @ApiImplicitParam(name = "period", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7")
     })
     @ApiResponses({
             @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
             @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
             @ApiResponse(code = 500, message = "Internal Server Error")
     })
-    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/features/{features}/window-size/{window-size}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getMovingAverageAsJSON(@PathVariable(required = true) String urlRepoKey,
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
-            @PathVariable(required = true) Integer period)
+            @PathVariable(required = true, name = "window-size") Integer period)
     {
         try
         {
@@ -526,8 +524,6 @@ public class DataManagerController
                     }
                 }
                 
-                if (_sdate != null && _sdate.startsWith("2022")) System.out.println("timeseries.row: "+jsonObject.toString());
-                
                 jsonArray.put(jsonObject);
             }
             
@@ -540,33 +536,32 @@ public class DataManagerController
         }
     }
     
-    @ApiOperation(value = "Update moving average")
+    @ApiOperation(value = "Update moving average. To be used by the 'update-repo.sh' script")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
             @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
-            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names.", paramType = "String", required = true, example = "'cases'"),
-            @ApiImplicitParam(name = "begin", paramType = "String", required = true, example = "2020-06-02"),
-            @ApiImplicitParam(name = "end", paramType = "String", required = true, example = "2020-06-09"),
-            @ApiImplicitParam(name = "period", paramType = "the Integer value representing the period for calculating the moving average", required = true, example = "7")
+            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
+            @ApiImplicitParam(name = "period", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7")
     })
     @ApiResponses({
             @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
             @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
             @ApiResponse(code = 500, message = "Internal Server Error")
     })
-    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/period/{period}/as-json/force-save", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/features/{features}/window-size/{window-size}/as-json/force-save", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> updateMovingAverageFor(@PathVariable(required = true) String urlRepoKey,
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
-            @PathVariable(required = true) Integer period)
+            @PathVariable(required = true, name = "window-size") Integer period)
     {
         try
         {
             final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
                     .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
             
+            Timeseries timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "date:deaths:newCases:totalCases".split(Pattern.quote(":")));
+            
             dataManagerService.saveMovingAverage(fileFullName, 
-                    new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],
-                            dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases".split(Pattern.quote(":"))), period));
+                    new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0], timeseries, period));
             
             return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
         }
@@ -577,7 +572,7 @@ public class DataManagerController
         }
     }
 
-    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
+    // @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getMovingAverageAsJSONFilteringByDate(@PathVariable(required = true) String urlRepoKey,
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
             @PathVariable(required = true) String begin, @PathVariable(required = true) String end,
