@@ -1163,6 +1163,7 @@ public class DataManagerServiceImpl implements DataManagerService
             String [] rowTokens = null;
             String row = null;
             String [] fields = features;
+            int dateHeaderRowColumnIndex = -1;
             
             // read header line
             if ((row = bReader.readLine()) != null)
@@ -1180,7 +1181,10 @@ public class DataManagerServiceImpl implements DataManagerService
                             headerRow[headerRowColumnIndex] = new JSONObject();
                             headerRow[headerRowColumnIndex].put("index", rowTokenColumnIndex);
                             headerRow[headerRowColumnIndex].put("name", rowTokens[rowTokenColumnIndex]);
-                            
+                            if (rowTokens[rowTokenColumnIndex].equalsIgnoreCase(features[0].trim())) 
+                            {
+                                dateHeaderRowColumnIndex = rowTokenColumnIndex;
+                            }
                             break;
                         }
                     }
@@ -1205,7 +1209,7 @@ public class DataManagerServiceImpl implements DataManagerService
                 tmp = end.split(Pattern.quote("-"));
                 Long endDate = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
                 
-                tmp = rowTokens[1].split(Pattern.quote("-"));
+                tmp = rowTokens[dateHeaderRowColumnIndex].split(Pattern.quote("-"));
                 Long date = new Date(Integer.parseInt(tmp[0])-1900, Integer.parseInt(tmp[1])-1, Integer.parseInt(tmp[2])).getTime();
                 
                 if (date >= beginDate && date <= endDate)
@@ -1223,18 +1227,18 @@ public class DataManagerServiceImpl implements DataManagerService
             }
             
             final Timeseries timeseries = new Timeseries(fields, list.size());
-            list.stream().forEach(item ->
+            list.stream().forEach(entry ->
             {
                 try
                 {
-                    item.keySet().stream().forEach(key -> {
+                    entry.keySet().stream().forEach(key -> {
                         try
                         {
                             if (!key.equals("timestamp")) 
                             {
-                                if (item.get(key) != null)
+                                if (entry.get(key) != null)
                                 {
-                                    timeseries.emplace(key, item.get(key), item.getLong("timestamp"));
+                                    timeseries.emplace(key, entry.get(key), entry.getLong("timestamp"));
                                 }
                                 else
                                 {

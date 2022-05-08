@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.np.commons.model.Timeseries;
 import com.np.commons.stats.StatisticsUtil;
-import com.np.datamanager.Monitoring;
+import com.np.commons.utils.Utils;
 import com.np.datamanager.service.DataManagerService;
 
 import io.swagger.annotations.Api;
@@ -392,68 +392,72 @@ public class DataManagerController
 		}
 	}
 	
+	/*
 	@ApiOperation(value = "use this endpoint to configure a repository's update schedule.")
-	@ApiImplicitParams({
-		@ApiImplicitParam(name = "JSON Body", value = "Object to be created", paramType = "body", required = true, 
-				example = "{{\"p971074907\":{\"download-data\":{\"urlRepo\":\"https://raw.githubusercontent.com/wcota/covid19br/master/cases-brazil-states.csv\"},\"slice-data\":{\"locale\":\"brl:rn\",\"columns\":[0,1,3,5,6,7,8,9,10],\"separator\":\",\",\"connective\":\"and\",\"cValueIndex\":[3,4],\"cValue\":[\"RN\",\"TOTAL\"]}}}}")
-	})
-	@ApiResponses({ 
-		@ApiResponse(code = 200, message = "Success"), 
-		@ApiResponse(code = 417, message = "Expectation Failed"),
-		@ApiResponse(code = 500, message = "Internal Server Error")
-	})
-	@PostMapping(path = "/repo/schedule", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-	public ResponseEntity<String> setSchedule(@RequestBody(required = true) String body) 
-	{
-		/*
-		{
-		  "n0290999393": {
-		    "download-data": {
-		      "urlRepo": ""
-		    },
-		    "slide-data": {
-			  "locale": "SP"
-			  "columns": [],
-			  "separator": ",",
-			  "connective": "and",
-			  "cValueIndex": [],
-			  "cValue": []
-			}
-		  }
-		}
-		 */
-		try 
-		{
-			Monitoring.getInstance(24l).getAgenda().setAppointments(new JSONObject(body));
-			
-			return ResponseEntity.ok().body("");
-		} 
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
-		}
-	}
+    @ApiImplicitParams({
+        @ApiImplicitParam(name = "JSON Body", value = "Object to be created", paramType = "body", required = true, 
+                example = "{{\"p971074907\":{\"download-data\":{\"urlRepo\":\"https://raw.githubusercontent.com/wcota/covid19br/master/cases-brazil-states.csv\"},\"slice-data\":{\"locale\":\"brl:rn\",\"columns\":[0,1,3,5,6,7,8,9,10],\"separator\":\",\",\"connective\":\"and\",\"cValueIndex\":[3,4],\"cValue\":[\"RN\",\"TOTAL\"]}}}}")
+    })
+    @ApiResponses({ 
+        @ApiResponse(code = 200, message = "Success"), 
+        @ApiResponse(code = 417, message = "Expectation Failed"),
+        @ApiResponse(code = 500, message = "Internal Server Error")
+    })
+    @PostMapping(path = "/repo/schedule", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> setSchedule(@RequestBody(required = true) String body) 
+    {
+        /*
+        {
+          "n0290999393": {
+            "download-data": {
+              "urlRepo": ""
+            },
+            "slide-data": {
+              "locale": "SP"
+              "columns": [],
+              "separator": ",",
+              "connective": "and",
+              "cValueIndex": [],
+              "cValue": []
+            }
+          }
+        }
+         * /
+        try 
+        {
+            Monitoring.getInstance(24l).getAgenda().setAppointments(new JSONObject(body));
+            
+            return ResponseEntity.ok().body("");
+        } 
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
+	 */
 	
+	/*
 	@ApiOperation(value = "Use this endpoint to retrieve the list of scheduled updates from the repositories.")
-	@ApiResponses({ 
-		@ApiResponse(code = 200, message = "Success"), 
-		@ApiResponse(code = 417, message = "Expectation Failed"),
-		@ApiResponse(code = 500, message = "Internal Server Error")
-	})
-	@GetMapping(path = "/repo/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getSchedule() 
-	{
-		try 
-		{
-			return ResponseEntity.ok().body(Monitoring.getInstance(24l).getAgenda().getAppointments().toString(2));
-		} 
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
-		}
-	}
+    @ApiResponses({ 
+        @ApiResponse(code = 200, message = "Success"), 
+        @ApiResponse(code = 417, message = "Expectation Failed"),
+        @ApiResponse(code = 500, message = "Internal Server Error")
+    })
+    @GetMapping(path = "/repo/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getSchedule() 
+    {
+        try 
+        {
+            return ResponseEntity.ok().body(Monitoring.getInstance(24l).getAgenda().getAppointments().toString(2));
+        } 
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
+	 */
 	
     @ApiOperation(value = "Get moving average for a timeseries")
     @ApiImplicitParams({
@@ -483,30 +487,51 @@ public class DataManagerController
             final Timeseries timeseries;
             if (new File(fileFullName).exists()) 
             {
-                String [] f = features.split(Pattern.quote(":"));
-                
-                _timeseries = timeseries = dataManagerService.getMovingAverage(fileFullName, f);
+                timeseries = _timeseries = dataManagerService.getMovingAverage(fileFullName, features.split(Pattern.quote(":")));
             }
             else
             {
-                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases".split(Pattern.quote(":")));
+                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "date:deaths:newCases:totalCases".split(Pattern.quote(":")));
                 
-                timeseries = new StatisticsUtil(period).getMovingAverage(_timeseries, period);
+                timeseries = new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],_timeseries, period);
                 dataManagerService.saveMovingAverage(fileFullName, timeseries);
             }
             
-            JSONObject jsonObject = new JSONObject();
-            for (int i = 0; i < timeseries.values.length; i++)
+            JSONArray jsonArray = new JSONArray();
+            for (int rowIdx = 0; rowIdx < timeseries.timestamps.length; rowIdx++)
             {
-                JSONArray jsonArrayAVG = new JSONArray();
-                for (int j = 0; j < timeseries.values[i].length; j++)
+                JSONObject jsonObject = new JSONObject();
+                String _sdate = null;
+                if (timeseries.timestamps[rowIdx] != null) 
                 {
-                    jsonArrayAVG.put(timeseries.values[i][j]);
+                    _sdate = Utils.getInstance().formatDate("YY-mm-dd", timeseries.timestamps[rowIdx]);
+                    jsonObject.put("date", _sdate);
                 }
-                jsonObject.put(timeseries.fields[i].concat("_mavg"), jsonArrayAVG);
+                else
+                {
+                    _sdate = null;
+                    jsonObject.put("date", timeseries.timestamps[rowIdx]);
+                }
+                
+                for (int columnIdx = 0; columnIdx < timeseries.fields.length; columnIdx++)
+                {
+                    String value = null;
+                    if (timeseries.values[columnIdx][rowIdx] != null)
+                    {
+                        jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), timeseries.values[columnIdx][rowIdx]);
+                    }
+                    else
+                    {
+                        jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), value);
+                    }
+                }
+                
+                if (_sdate != null && _sdate.startsWith("2022")) System.out.println("timeseries.row: "+jsonObject.toString());
+                
+                jsonArray.put(jsonObject);
             }
             
-            return ResponseEntity.status(HttpStatus.OK).body(jsonObject.toString());
+            return ResponseEntity.status(HttpStatus.OK).body(jsonArray.toString());
         }
         catch (Exception e)
         {
@@ -540,7 +565,7 @@ public class DataManagerController
                     .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
             
             dataManagerService.saveMovingAverage(fileFullName, 
-                    new StatisticsUtil(period).getMovingAverage(
+                    new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],
                             dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases".split(Pattern.quote(":"))), period));
             
             return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
@@ -560,7 +585,7 @@ public class DataManagerController
     {
         try
         {
-            final Timeseries timeseries = new StatisticsUtil(period).getMovingAverage(
+            final Timeseries timeseries = new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],
                     dataManagerService.getDataAsTimeseries(urlRepoKey, path, features.split(Pattern.quote(":"))), period);
             
             JSONObject jsonObject = new JSONObject();
