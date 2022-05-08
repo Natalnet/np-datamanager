@@ -1307,20 +1307,19 @@ public class DataManagerServiceImpl implements DataManagerService
             JSONObject [] headerRow = null;
             String [] rowTokens = null;
             String row = null;
-            String [] fields = features;
             
             // read header line
             if ((row = bReader.readLine()) != null)
             {
                 rowTokens = row.concat(" ").split(Pattern.quote(";"));
                 
-                headerRow = new JSONObject[fields.length];
+                headerRow = new JSONObject[features.length];
                 for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
                 {
                     headerRow[headerRowColumnIndex] = null;
                     for (int rowTokenColumnIndex = 0; rowTokenColumnIndex < rowTokens.length; rowTokenColumnIndex++) 
                     {
-                        if (rowTokens[rowTokenColumnIndex].trim().toLowerCase().equals(fields[headerRowColumnIndex].trim().toLowerCase()))
+                        if (rowTokens[rowTokenColumnIndex].trim().toLowerCase().equals(features[headerRowColumnIndex].trim().toLowerCase()))
                         {
                             headerRow[headerRowColumnIndex] = new JSONObject();
                             headerRow[headerRowColumnIndex].put("index", rowTokenColumnIndex);
@@ -1335,6 +1334,16 @@ public class DataManagerServiceImpl implements DataManagerService
             {
                 throw new Exception("error: data file do not begin with headers");
             }
+
+            for (int i =0; i < features.length; i++)
+            {
+                System.out.println(features[i].toString());
+            }
+            
+            for (int i =0; i < headerRow.length; i++)
+            {
+                System.out.println(headerRow[i].toString());
+            }
             
             // read header meaning description line
             
@@ -1348,14 +1357,17 @@ public class DataManagerServiceImpl implements DataManagerService
                 
                 for (int headerRowColumnIndex = 0; headerRowColumnIndex < headerRow.length; headerRowColumnIndex++) 
                 {
-                    jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
-                            rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
+                    if (headerRow[headerRowColumnIndex] != null)
+                    {
+                        jsObject.put(headerRow[headerRowColumnIndex].getString("name").trim(), 
+                                rowTokens[headerRow[headerRowColumnIndex].getInt("index")].trim());
+                    }
                 }
                 
                 list.add(jsObject);
             }
             
-            final Timeseries timeseries = new Timeseries(fields, list.size());
+            final Timeseries timeseries = new Timeseries(features, list.size());
             list.stream().parallel().forEach(item ->
             {
                 try

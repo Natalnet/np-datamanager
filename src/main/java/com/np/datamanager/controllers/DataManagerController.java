@@ -478,6 +478,19 @@ public class DataManagerController
     {
         try
         {
+            System.out.println("0 features: "+features);
+            
+            String [] auxiliar = features.split(Pattern.quote(":"));
+            features = "";
+            for (int i = 1; i < auxiliar.length; i++)
+            {
+                features = features + auxiliar[i].concat(":");
+            }
+            System.out.println("1 features: "+features);
+            features = features.substring(0, features.length() - 1);
+            System.out.println("2 features: "+features);
+            
+            
             final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
                     .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
             
@@ -489,9 +502,9 @@ public class DataManagerController
             }
             else
             {
-                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "date:deaths:newCases:totalCases".split(Pattern.quote(":")));
+                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases:totalCases".split(Pattern.quote(":")));
                 
-                timeseries = new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],_timeseries, period);
+                timeseries = new StatisticsUtil(period).getMovingAverage(auxiliar[0], _timeseries, period);
                 dataManagerService.saveMovingAverage(fileFullName, timeseries);
             }
             
@@ -510,6 +523,8 @@ public class DataManagerController
                     _sdate = null;
                     jsonObject.put("date", timeseries.timestamps[rowIdx]);
                 }
+                
+                
                 
                 for (int columnIdx = 0; columnIdx < timeseries.fields.length; columnIdx++)
                 {
@@ -553,15 +568,23 @@ public class DataManagerController
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
             @PathVariable(required = true, name = "window-size") Integer period)
     {
+        String [] auxiliar = features.split(Pattern.quote(":"));
+        features = "";
+        for (int i = 1; i < auxiliar.length; i++)
+        {
+            features = features + auxiliar[i].concat(":");
+        }
+        features = features.substring(0, features.length() - 1);
+        
         try
         {
             final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
                     .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
             
-            Timeseries timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "date:deaths:newCases:totalCases".split(Pattern.quote(":")));
+            Timeseries timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases:totalCases".split(Pattern.quote(":")));
             
             dataManagerService.saveMovingAverage(fileFullName, 
-                    new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0], timeseries, period));
+                    new StatisticsUtil(period).getMovingAverage(auxiliar[0], timeseries, period));
             
             return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
         }
