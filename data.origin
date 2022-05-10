@@ -1,0 +1,6 @@
+HTTP/1.1 200 
+Content-Type: application/json
+Content-Length: 1023
+Date: Tue, 10 May 2022 18:47:04 GMT
+
+[{"date":"2021-03-26","newDeaths":"48","newCases":"1611"},{"date":"2021-03-27","newDeaths":"57","newCases":"1410"},{"date":"2021-03-28","newDeaths":"43","newCases":"1203"},{"date":"2021-03-29","newDeaths":"49","newCases":"968"},{"date":"2021-03-30","newDeaths":"70","newCases":"1150"},{"date":"2021-03-31","newDeaths":"73","newCases":"1553"},{"date":"2021-04-01","newDeaths":"47","newCases":"1311"},{"date":"2021-04-02","newDeaths":"29","newCases":"1227"},{"date":"2021-04-03","newDeaths":"46","newCases":"789"},{"date":"2021-04-04","newDeaths":"40","newCases":"1081"},{"date":"2021-04-05","newDeaths":"43","newCases":"1059"},{"date":"2021-04-06","newDeaths":"52","newCases":"817"},{"date":"2021-04-07","newDeaths":"49","newCases":"1551"},{"date":"2021-04-08","newDeaths":"35","newCases":"1171"},{"date":"2021-04-09","newDeaths":"33","newCases":"1272"},{"date":"2021-04-10","newDeaths":"39","newCases":"1480"},{"date":"2021-04-11","newDeaths":"19","newCases":"394"},{"date":"2021-04-12","newDeaths":"58","newCases":"1486"}]

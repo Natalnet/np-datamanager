@@ -17,12 +17,14 @@
 	<properties>
 		<java.version>11</java.version>
 	</properties>
-	<repositories>
-		<repository>
-			<id>private-repo-yc</id>
-			<url>file:///libs</url>
-		</repository>
-	</repositories>
+	<!-- 
+	repositories>
+        <repository>
+            <id>private-repo-yc</id>
+            <url>file:///libs</url>
+        </repository>
+    </repositories
+	 -->
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
