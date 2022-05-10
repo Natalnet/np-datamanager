@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="topup.js"></script>
+<link href="http://www.jqueryscript.net/css/jquerysctipttop.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<canvas id="graph01" ></canvas>
+<canvas id="graph02" ></canvas>
+<script>
+
+var ds = [
+    {"date":"2020-03-26","newCases_mavg":1.2857142857142858,"newDeaths_mavg":0},
+    {"date":"2020-03-27","newCases_mavg":1.9285714285714286,"newDeaths_mavg":0},
+    {"date":"2020-03-28","newCases_mavg":4.785714285714286,"newDeaths_mavg":0.07142857142857142},
+    {"date":"2020-03-29","newCases_mavg":4.785714285714286,"newDeaths_mavg":0.07142857142857142},
+    {"date":"2020-03-30","newCases_mavg":5.428571428571429,"newDeaths_mavg":0.07142857142857142},
+    {"date":"2020-03-31","newCases_mavg":5.785714285714286,"newDeaths_mavg":0.07142857142857142},
+    {"date":"2020-04-01","newCases_mavg":6.5,"newDeaths_mavg":0.14285714285714285},
+    {"date":"2020-04-02","newCases_mavg":7.5,"newDeaths_mavg":0.14285714285714285},
+    {"date":"2020-04-03","newCases_mavg":12.142857142857142,"newDeaths_mavg":0.2857142857142857},
+    {"date":"2020-04-04","newCases_mavg":14.714285714285714,"newDeaths_mavg":0.42857142857142855},
+    {"date":"2020-04-05","newCases_mavg":16.642857142857142,"newDeaths_mavg":0.5},
+    {"date":"2020-04-06","newCases_mavg":16.642857142857142,"newDeaths_mavg":0.5},
+    {"date":"2020-04-07","newCases_mavg":17.142857142857142,"newDeaths_mavg":0.5714285714285714},
+    {"date":"2020-04-08","newCases_mavg":17.714285714285715,"newDeaths_mavg":0.7857142857142857},
+    {"date":"2020-04-09","newCases_mavg":17.357142857142858,"newDeaths_mavg":0.7857142857142857},
+    {"date":"2020-04-10","newCases_mavg":16.785714285714285,"newDeaths_mavg":0.7857142857142857},
+    {"date":"2020-04-11","newCases_mavg":15.785714285714286,"newDeaths_mavg":0.8571428571428571},
+    {"date":"2020-04-12","newCases_mavg":19.357142857142858,"newDeaths_mavg":1.1428571428571428}];
+// [{"date":"2022-03-01","newCases_mavg":"1057.2857142857142","newDeaths_mavg":"6.928571428571428"},{"date":"2022-03-02","newCases_mavg":"910.5","newDeaths_mavg":"6.2142857142857135"},{"date":"2022-03-03","newCases_mavg":"879.9285714285713","newDeaths_mavg":"6.0"},{"date":"2022-03-04","newCases_mavg":"825.2142857142857","newDeaths_mavg":"5.357142857142857"},{"date":"2022-03-05","newCases_mavg":"766.7142857142857","newDeaths_mavg":"4.7857142857142865"},{"date":"2022-03-06","newCases_mavg":"753.0714285714287","newDeaths_mavg":"4.571428571428572"},{"date":"2022-03-07","newCases_mavg":"683.7857142857143","newDeaths_mavg":"3.6428571428571432"},{"date":"2022-03-08","newCases_mavg":"620.0","newDeaths_mavg":"3.7142857142857144"},{"date":"2022-03-09","newCases_mavg":"568.8571428571429","newDeaths_mavg":"3.4285714285714284"},{"date":"2022-03-10","newCases_mavg":"553.7857142857143","newDeaths_mavg":"3.642857142857143"},{"date":"2022-03-11","newCases_mavg":"542.2142857142857","newDeaths_mavg":"3.3571428571428568"},{"date":"2022-03-12","newCases_mavg":"532.2142857142857","newDeaths_mavg":"3.4285714285714284"},{"date":"2022-03-13","newCases_mavg":"512.0","newDeaths_mavg":"3.5714285714285716"},{"date":"2022-03-14","newCases_mavg":"544.2142857142857","newDeaths_mavg":"3.4285714285714284"},{"date":"2022-03-15","newCases_mavg":"610.0714285714286","newDeaths_mavg":"3.7857142857142856"},{"date":"2022-03-16","newCases_mavg":"786.1428571428572","newDeaths_mavg":"3.7857142857142856"},{"date":"2022-03-17","newCases_mavg":"827.0714285714287","newDeaths_mavg":"3.5"},{"date":"2022-03-18","newCases_mavg":"873.7857142857143","newDeaths_mavg":"3.5"}];
+
+let datasetValues = [];
+let datasetIndexers = [];
+for (let dsIdx = 0; dsIdx < ds.length; dsIdx++)
+{
+    datasetValues.push(new Number(ds[dsIdx].newDeaths_mavg));
+    datasetIndexers.push(ds[dsIdx].date);
+}
+
+console.log('for newCases_mavg: ', datasetValues)
+
+drawlineChart({
+    node: "graph01",
+    dataset: datasetValues,
+    labels: datasetIndexers,
+    pathcolor: "#288ed4",
+    fillcolor: "#8e8e8e",
+    xPadding: 0,
+    yPadding: 0,
+    ybreakperiod: 50
+});
+
+
+var ds_origin = [
+    {"date":"2020-03-26","newCases_mavg":5,"newDeaths_mavg":0},
+    {"date":"2020-03-27","newCases_mavg":9,"newDeaths_mavg":0},
+    {"date":"2020-03-28","newCases_mavg":40,"newDeaths_mavg":1},
+    {"date":"2020-03-29","newCases_mavg":0,"newDeaths_mavg":0},
+    {"date":"2020-03-30","newCases_mavg":9,"newDeaths_mavg":0},
+    {"date":"2020-03-31","newCases_mavg":5,"newDeaths_mavg":0},
+    {"date":"2020-04-01","newCases_mavg":10,"newDeaths_mavg":1},
+    {"date":"2020-04-02","newCases_mavg":14,"newDeaths_mavg":0},
+    {"date":"2020-04-03","newCases_mavg":70,"newDeaths_mavg":2},
+    {"date":"2020-04-04","newCases_mavg":39,"newDeaths_mavg":2},
+    {"date":"2020-04-05","newCases_mavg":31,"newDeaths_mavg":1},
+    {"date":"2020-04-06","newCases_mavg":0,"newDeaths_mavg":0},
+    {"date":"2020-04-07","newCases_mavg":8,"newDeaths_mavg":1},
+    {"date":"2020-04-08","newCases_mavg":8,"newDeaths_mavg":3},
+    {"date":"2020-04-09","newCases_mavg":0,"newDeaths_mavg":0},
+    {"date":"2020-04-10","newCases_mavg":1,"newDeaths_mavg":0},
+    {"date":"2020-04-11","newCases_mavg":26,"newDeaths_mavg":2},
+    {"date":"2020-04-12","newCases_mavg":50,"newDeaths_mavg":4}];
+// [{"date":"2022-03-01","newCases_mavg":"121","newDeaths_mavg":"0"},{"date":"2022-03-02","newCases_mavg":"557","newDeaths_mavg":"4"},{"date":"2022-03-03","newCases_mavg":"1087","newDeaths_mavg":"4"},{"date":"2022-03-04","newCases_mavg":"653","newDeaths_mavg":"1"},{"date":"2022-03-05","newCases_mavg":"78","newDeaths_mavg":"1"},{"date":"2022-03-06","newCases_mavg":"47","newDeaths_mavg":"2"},{"date":"2022-03-07","newCases_mavg":"1304","newDeaths_mavg":"5"},{"date":"2022-03-08","newCases_mavg":"741","newDeaths_mavg":"8"},{"date":"2022-03-09","newCases_mavg":"746","newDeaths_mavg":"3"},{"date":"2022-03-10","newCases_mavg":"981","newDeaths_mavg":"7"},{"date":"2022-03-11","newCases_mavg":"613","newDeaths_mavg":"5"},{"date":"2022-03-12","newCases_mavg":"71","newDeaths_mavg":"3"},{"date":"2022-03-13","newCases_mavg":"8","newDeaths_mavg":"3"},{"date":"2022-03-14","newCases_mavg":"612","newDeaths_mavg":"2"},{"date":"2022-03-15","newCases_mavg":"1043","newDeaths_mavg":"5"},{"date":"2022-03-16","newCases_mavg":"3022","newDeaths_mavg":"4"},{"date":"2022-03-17","newCases_mavg":"1660","newDeaths_mavg":"0"},{"date":"2022-03-18","newCases_mavg":"1307","newDeaths_mavg":"1"}];
+
+let _datasetValues = [];
+datasetIndexers = [];
+for (let dsIdx = 0; dsIdx < ds_origin.length; dsIdx++)
+{
+    _datasetValues.push(new Number(ds_origin[dsIdx].newDeaths_mavg));
+    datasetIndexers.push(ds_origin[dsIdx].date);
+}
+
+console.log('for newCases_mavg: ', _datasetValues)
+
+drawlineChart({
+    node: "graph02",
+    dataset: _datasetValues,
+    labels: datasetIndexers,
+    pathcolor: "#288ed4",
+    fillcolor: "#8e8e8e",
+    xPadding: 0,
+    yPadding: 0,
+    ybreakperiod: 50
+});
+
+/*
+datasetValues = [];
+datasetIndexers = [];
+for (let dsIdx = 0; dsIdx < ds.length; dsIdx++)
+{
+    datasetValues.push(new Number(ds[dsIdx].newDeaths_mavg));
+    datasetIndexers.push(ds[dsIdx].date);
+}
+
+console.log('for newDeaths_mavg: ', datasetValues)
+
+drawlineChart({
+    node: "graph02",
+    dataset: datasetValues,
+    labels: datasetIndexers,
+    pathcolor: "#288ed4",
+    fillcolor: "#8e8e8e",
+    xPadding: 0,
+    yPadding: 0,
+    ybreakperiod: 50
+});
+ */
+</script>
+</body>
+</html>

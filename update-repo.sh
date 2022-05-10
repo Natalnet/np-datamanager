@@ -31,11 +31,11 @@ for unidade in ${unidades[@]}; do
 done
 
 for unidade in ${unidades[@]}; do
-  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:deaths:newCases:totalCases/window-size/7/as-json/force-save)
+  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:newCases:newCases/window-size/7/as-json/force-save)
   echo "unidade $unidade: $resultado (mavg:7)" >> ./update-repo.log
-  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:deaths:newCases:totalCases/window-size/14/as-json/force-save)
+  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:newCases:newCases/window-size/14/as-json/force-save)
   echo "unidade $unidade: $resultado (mavg:14)" >> ./update-repo.log
-  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:deaths:newCases:totalCases/window-size/28/as-json/force-save)
+  resultado=$(curl -X GET -H 'Content-Type: application/json' $host/repo/$repoKey/path/brl:"${unidade^h}"/features/date:newCases:newCases/window-size/28/as-json/force-save)
   echo "unidade $unidade: $resultado (mavg:28)" >> ./update-repo.log
 done
 

@@ -1,5 +1,5 @@
 ******************** 
-resultado da atualização em: dom 08 mai 2022 15:50:44 -03
+resultado da atualização em: ter 10 mai 2022 14:36:01 -03
 urlRepoKey: https://raw.githubusercontent.com/wcota/covid19br/master/cases-brazil-states.csv
 repoKey: p971074907
 
@@ -92,9 +92,9 @@ unidade pi: updated! (mavg:28)
 unidade rj: updated! (mavg:7)
 unidade rj: updated! (mavg:14)
 unidade rj: updated! (mavg:28)
-unidade rn: updated! (mavg:7)
+unidade rn: Cannot invoke "java.lang.Double.doubleValue()" because "timeseries.values[fieldIndex][valueIdx]" is null (mavg:7)
 unidade rn: updated! (mavg:14)
-unidade rn: updated! (mavg:28)
+unidade rn: Cannot invoke "java.lang.Double.doubleValue()" because "timeseries.values[fieldIndex][valueIdx]" is null (mavg:28)
 unidade ro: updated! (mavg:7)
 unidade ro: updated! (mavg:14)
 unidade ro: updated! (mavg:28)

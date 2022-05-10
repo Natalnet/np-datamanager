@@ -35,11 +35,13 @@ public interface DataManagerService
 	
 	public void slice(String repo, JSONObject info) throws Exception;
 	
-	public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String [] features) throws Exception;
+	//public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String [] features) throws Exception;
     
-    public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String [] features, String begin, String end) throws Exception;
+    public Timeseries getDataAsTimeseries(String urlRepoKey, String path, String temporalIndexer, String [] features, String begin, String end) throws Exception;
 	
-	public void saveMovingAverage(String fileFullName, Timeseries timeseries) throws Exception;
+	public void saveAVGTimeseries(String fileFullName, Timeseries timeseries) throws Exception;
     
-    public Timeseries getMovingAverage(String fileFullName, String [] features) throws Exception;
+    public Timeseries getAVGTimeseriesByPeriod(String fileFullName, String [] features, String begin, String end) throws Exception;
+    
+    public String [] getAVGTimeseriesHeadersFromFile(String fileFullName) throws Exception;
 }

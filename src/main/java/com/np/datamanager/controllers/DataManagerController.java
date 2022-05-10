@@ -2,7 +2,11 @@ package com.np.datamanager.controllers;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -463,75 +467,141 @@ public class DataManagerController
     @ApiImplicitParams({
         @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
         @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
-        @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
-        @ApiImplicitParam(name = "period", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7")
+        @ApiImplicitParam(name = "features", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
+        @ApiImplicitParam(name = "window-size", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7"),
+        @ApiImplicitParam(name = "begin", paramType = "String", required = true, example = "2020-06-02"),
+        @ApiImplicitParam(name = "end", paramType = "String", required = true, example = "2020-06-09")
     })
     @ApiResponses({
             @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
             @ApiResponse(code = 404, message = "Not Found"), @ApiResponse(code = 417, message = "Expectation Failed"),
             @ApiResponse(code = 500, message = "Internal Server Error")
     })
-    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/features/{features}/window-size/{window-size}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/features/{features}/window-size/{window-size}/begin/{begin}/end/{end}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getMovingAverageAsJSON(@PathVariable(required = true) String urlRepoKey,
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
-            @PathVariable(required = true, name = "window-size") Integer period)
+            @PathVariable(required = true, name = "window-size") Integer windowSize, 
+            @PathVariable(required = true) String begin, @PathVariable(required = true) String end)
     {
         try
         {
-            String [] auxiliar = features.split(Pattern.quote(":"));
-            features = "";
-            for (int i = 1; i < auxiliar.length; i++)
-            {
-                features = features + auxiliar[i].concat(":");
-            }
-            features = features.substring(0, features.length() - 1);
+            final String [] rFeatures = features.split(Pattern.quote(":"));
             
-            final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
-                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
+            final String fileName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
+                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(windowSize)).concat(".all.feature");
             
-            Timeseries _timeseries;
-            final Timeseries timeseries;
-            if (new File(fileFullName).exists()) 
+            Timeseries timeseries = null;
+            if (new File(fileName).exists()) 
             {
-                timeseries = _timeseries = dataManagerService.getMovingAverage(fileFullName, features.split(Pattern.quote(":")));
+                final Set<String> headers = new HashSet<>();
+                
+                final String [] actualHeaders = dataManagerService.getAVGTimeseriesHeadersFromFile(fileName);
+                
+                Stream.of(actualHeaders).forEach(header -> {
+                    headers.add(header.trim());
+                });
+                
+                for (int rFeatureIdx = 1; rFeatureIdx < rFeatures.length; rFeatureIdx++) 
+                {
+                    headers.add(rFeatures[rFeatureIdx]);
+                }
+                
+                if (actualHeaders.length == headers.size()) 
+                {
+                    /*
+                     * o arquivo atualmente possui todos os campos
+                     * 
+                     */
+                }
+                else
+                {
+                    int newFeatureIdx = 0;
+                    final String [] newFeatures = new String[headers.size()];
+                    Iterator<String> headersIterator = headers.iterator();
+                    while (headersIterator.hasNext())
+                    {
+                         newFeatures[newFeatureIdx] = headersIterator.next();
+                         newFeatureIdx++;
+                    }
+                    
+                    timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, rFeatures[0], newFeatures, null, null);
+                    timeseries = new StatisticsUtil(windowSize).getMovingAverage(rFeatures[0], timeseries);
+                    dataManagerService.saveAVGTimeseries(fileName, timeseries);
+                }
             }
             else
             {
-                _timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases:totalCases".split(Pattern.quote(":")));
+                final String [] newFeatures = new String[rFeatures.length - 1];
+                for (int rFeaturesIdx = 1; rFeaturesIdx < rFeatures.length; rFeaturesIdx++)
+                {
+                    newFeatures[rFeaturesIdx - 1] = rFeatures[rFeaturesIdx];
+                }
                 
-                timeseries = new StatisticsUtil(period).getMovingAverage(auxiliar[0], _timeseries, period);
-                dataManagerService.saveMovingAverage(fileFullName, timeseries);
+                timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, rFeatures[0], newFeatures, null, null);
+                timeseries = new StatisticsUtil(windowSize).getMovingAverage(rFeatures[0], timeseries);
+                dataManagerService.saveAVGTimeseries(fileName, timeseries);
             }
+            
+            final String [] newFeatures = new String[rFeatures.length - 1];
+            for (int rFeaturesIdx = 1; rFeaturesIdx < rFeatures.length; rFeaturesIdx++)
+            {
+                newFeatures[rFeaturesIdx - 1] = rFeatures[rFeaturesIdx];
+            }
+            
+            timeseries = dataManagerService.getAVGTimeseriesByPeriod(fileName, newFeatures, begin, end);
             
             JSONArray jsonArray = new JSONArray();
             for (int rowIdx = 0; rowIdx < timeseries.timestamps.length; rowIdx++)
             {
                 JSONObject jsonObject = new JSONObject();
-                String _sdate = null;
-                if (timeseries.timestamps[rowIdx] != null) 
-                {
-                    _sdate = Utils.getInstance().formatDate("YY-mm-dd", timeseries.timestamps[rowIdx]);
-                    jsonObject.put("date", _sdate);
-                }
-                else
-                {
-                    _sdate = null;
-                    jsonObject.put("date", timeseries.timestamps[rowIdx]);
-                }
                 
-                
+                jsonObject.put("date", Utils.getInstance().formatDate("YY-mm-dd", timeseries.timestamps[rowIdx]));
                 
                 for (int columnIdx = 0; columnIdx < timeseries.fields.length; columnIdx++)
                 {
-                    String value = null;
-                    if (timeseries.values[columnIdx][rowIdx] != null)
-                    {
-                        jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), timeseries.values[columnIdx][rowIdx]);
-                    }
-                    else
-                    {
-                        jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), value);
-                    }
+                    jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), timeseries.values[columnIdx][rowIdx]);
+                }
+                
+                jsonArray.put(jsonObject);
+            }
+            
+            return ResponseEntity.status(HttpStatus.OK).body(jsonArray.toString());
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
+        }
+    }
+    
+    // @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/timeseries/features/{features}/window-size/{window-size}/begin/{begin}/end/{end}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getTimeseriesAsJSON(@PathVariable(required = true) String urlRepoKey,
+            @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
+            @PathVariable(required = true, name = "window-size") Integer windowSize, 
+            @PathVariable(required = true) String begin, @PathVariable(required = true) String end)
+    {
+        try
+        {
+            final String [] rFeatures = features.split(Pattern.quote(":"));
+
+            final String [] newFeatures = new String[rFeatures.length - 1];
+            for (int rFeaturesIdx = 1; rFeaturesIdx < rFeatures.length; rFeaturesIdx++)
+            {
+                newFeatures[rFeaturesIdx - 1] = rFeatures[rFeaturesIdx];
+            }
+            
+            Timeseries timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, rFeatures[0], newFeatures, begin, end);
+            
+            JSONArray jsonArray = new JSONArray();
+            for (int rowIdx = 0; rowIdx < timeseries.timestamps.length; rowIdx++)
+            {
+                JSONObject jsonObject = new JSONObject();
+                
+                jsonObject.put("date", Utils.getInstance().formatDate("YY-mm-dd", timeseries.timestamps[rowIdx]));
+                
+                for (int columnIdx = 0; columnIdx < timeseries.fields.length; columnIdx++)
+                {
+                    jsonObject.put(timeseries.fields[columnIdx].concat("_mavg"), timeseries.values[columnIdx][rowIdx]);
                 }
                 
                 jsonArray.put(jsonObject);
@@ -550,8 +620,8 @@ public class DataManagerController
     @ApiImplicitParams({
             @ApiImplicitParam(name = "urlRepoKey", value = "the key URL repo from file uploaded", paramType = "String", required = true),
             @ApiImplicitParam(name = "path", value = "the path locale to a locale", paramType = "String", required = true, example = "brl:rn"),
-            @ApiImplicitParam(name = "feature", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
-            @ApiImplicitParam(name = "period", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7")
+            @ApiImplicitParam(name = "features", value = "a colon-separated list of feature names, starting with the date field name", paramType = "String", required = true, example = "'cases'"),
+            @ApiImplicitParam(name = "window-size", value = "A value of type int that represents the window for calculating the moving average", paramType = "Integer", required = true, example = "7")
     })
     @ApiResponses({
             @ApiResponse(code = 200, message = "Success - response body: [{'columnName':String, 'columnValue':String},*]"),
@@ -561,58 +631,58 @@ public class DataManagerController
     @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/features/{features}/window-size/{window-size}/as-json/force-save", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> updateMovingAverageFor(@PathVariable(required = true) String urlRepoKey,
             @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
-            @PathVariable(required = true, name = "window-size") Integer period)
-    {
-        String [] auxiliar = features.split(Pattern.quote(":"));
-        features = "";
-        for (int i = 1; i < auxiliar.length; i++)
-        {
-            features = features + auxiliar[i].concat(":");
-        }
-        features = features.substring(0, features.length() - 1);
-        
-        try
-        {
-            final String fileFullName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
-                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(period)).concat(".all.feature");
-            
-            Timeseries timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, "deaths:newCases:totalCases".split(Pattern.quote(":")));
-            
-            dataManagerService.saveMovingAverage(fileFullName, 
-                    new StatisticsUtil(period).getMovingAverage(auxiliar[0], timeseries, period));
-            
-            return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(e.getMessage());
-        }
-    }
-
-    // @GetMapping(value = "/repo/{urlRepoKey}/path/{path}/feature/{features}/begin/{begin}/end/{end}/period/{period}/as-json", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> getMovingAverageAsJSONFilteringByDate(@PathVariable(required = true) String urlRepoKey,
-            @PathVariable(required = true) String path, @PathVariable(required = true) String features, 
-            @PathVariable(required = true) String begin, @PathVariable(required = true) String end,
-            @PathVariable(required = true) Integer period)
+            @PathVariable(required = true, name = "window-size") Integer windowSize)
     {
         try
         {
-            final Timeseries timeseries = new StatisticsUtil(period).getMovingAverage(features.split(Pattern.quote(":"))[0],
-                    dataManagerService.getDataAsTimeseries(urlRepoKey, path, features.split(Pattern.quote(":"))), period);
+            final String [] rFeatures = features.split(Pattern.quote(":"));
             
-            JSONObject jsonObject = new JSONObject();
-            for (int i = 0; i < timeseries.values.length; i++)
+            final String fileName = Paths.get(dataFileBaseDir.concat("/").concat(urlRepoKey).concat("-dir/").concat(path.replace(":", "/")))
+                    .toFile().getPath().concat("/avg.p").concat(String.valueOf(windowSize)).concat(".all.feature");
+            
+            Timeseries timeseries = null;
+            if (new File(fileName).exists()) 
             {
-                JSONArray jsonArrayAVG = new JSONArray();
-                for (int j = 0; j < timeseries.values[i].length; j++)
+                final Set<String> headers = new HashSet<>();
+                
+                final String [] actualHeaders = dataManagerService.getAVGTimeseriesHeadersFromFile(fileName);
+                for (int actualHeaderIdx = 0; actualHeaderIdx < actualHeaders.length; actualHeaderIdx++)
                 {
-                    jsonArrayAVG.put(timeseries.values[i][j]);
+                    headers.add(actualHeaders[actualHeaderIdx].trim());
                 }
-                jsonObject.put(timeseries.fields[i].concat("_mavg"), jsonArrayAVG);
+                
+                for (int rFeatureIdx = 1; rFeatureIdx < rFeatures.length; rFeatureIdx++) 
+                {
+                    headers.add(rFeatures[rFeatureIdx].trim());
+                }
+                
+                int newFeatureIdx = 0;
+                final String [] newFeatures = new String[headers.size()];
+                Iterator<String> headersIterator = headers.iterator();
+                while (headersIterator.hasNext())
+                {
+                     newFeatures[newFeatureIdx] = headersIterator.next(); 
+                     newFeatureIdx++;
+                }
+                
+                timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, rFeatures[0], newFeatures, null, null);
+                timeseries = new StatisticsUtil(windowSize).getMovingAverage(rFeatures[0], timeseries);
+                dataManagerService.saveAVGTimeseries(fileName, timeseries);
+            }
+            else
+            {
+                final String [] newFeatures = new String[rFeatures.length - 1];
+                for (int rFeaturesIdx = 1; rFeaturesIdx < rFeatures.length; rFeaturesIdx++)
+                {
+                    newFeatures[rFeaturesIdx - 1] = rFeatures[rFeaturesIdx];
+                }
+                
+                timeseries = dataManagerService.getDataAsTimeseries(urlRepoKey, path, rFeatures[0], newFeatures, null, null);
+                timeseries = new StatisticsUtil(windowSize).getMovingAverage(rFeatures[0], timeseries);
+                dataManagerService.saveAVGTimeseries(fileName, timeseries);
             }
             
-            return ResponseEntity.status(HttpStatus.OK).body(jsonObject.toString());
+            return ResponseEntity.status(HttpStatus.CREATED).body("updated!");
         }
         catch (Exception e)
         {
