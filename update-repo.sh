@@ -18,7 +18,7 @@ echo "repoKey: $repoKey" >> ./update-repo.log
 
 echo "" >> ./update-repo.log
 echo "erro na atualização da média móvel no repositório:" >> ./update-repo.log
-echo "repositório $repoKey: $(curl -X GET $host/repo/)" >> ./update-repo.log
+echo "repositório $repoKey: $(curl -X POST -H "Content-Type: application/json" -d '{ "urlRepo":"'$urlRepoKey'" }' $host/repo/)" >> ./update-repo.log
 
 echo "unidade brl: $(curl -X POST -H 'Content-Type: application/json' -d '{"locale":"brl","columns":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],"separator":",","connective":"and","cValueIndex":[3,4],"cValue":["TOTAL","TOTAL"]}' $host/repo/$repoKey/slice)" >> ./update-repo.log
 

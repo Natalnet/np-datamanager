@@ -1,10 +1,10 @@
 ******************** 
-resultado da atualização em: ter 10 mai 2022 15:44:53 -03
+resultado da atualização em: seg 23 mai 2022 12:24:28 -03
 urlRepoKey: https://raw.githubusercontent.com/wcota/covid19br/master/cases-brazil-states.csv
 repoKey: p971074907
 
 erro na atualização da média móvel no repositório:
-repositório p971074907: [{"urlRepoKey":"p971074907","urlRepo":"https://raw.githubusercontent.com/wcota/covid19br/master/cases-brazil-states.csv"}]
+repositório p971074907: 
 unidade brl: 
 
 erros na execução do particinamento do repositório atualizado: 
